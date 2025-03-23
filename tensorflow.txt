@@ -1,0 +1,41 @@
+pip install tensorflow
+import tensorflow as tf
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+data=pd.read_csv("/content/dataset.csv")
+print(data)
+
+features=data[['size','rooms']].values
+target=data['amount'].values
+
+X_train,X_test,y_train,y_test=train_test_split(features,target,test_size=0.2,random_state=42)
+
+scaler=StandardScaler()
+X_train=scaler.fit_transform(X_train)
+X_test=scaler.transform(X_test)
+
+y_train_max = y_train.max()
+y_train = y_train/y_train_max
+y_test = y_test/y_train_max
+
+model = tf.keras.sequential([
+    tf.keras.layers.Dense(64,activation='relu',input_shape=(X_train.shape[1],)),
+    tf.keras.layers.Dense(64,activation='relu'),
+    tf.keras.layers.Dense(1)
+])
+
+model.compile(optimizer='adam',loss='mse',metrics=['mae'])
+model.fit(X_train,y_train,epochs=100,verbose=0)
+loss,mae = model.evaluate(X_test,y_test,verbose=1)
+print(f"Test loss(MSE):{loss:.4f},Test MAE:{mae:.4f}")
+
+input_size=180.0
+input_rooms=5
+input_features=np.array([[input_size,input_rooms]])
+input_features_scaled=scaler.transform(input_features)
+predicted_price_scaled=model.predict(input_features_scaled)
+predicted_price=predicted_price_scaled[0][0]*y_train_max
+print(f"predicted price:${predicted_price:,.2f}")
